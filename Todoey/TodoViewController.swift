@@ -11,10 +11,15 @@ import UIKit
 class TodoViewController: UITableViewController {
 
     var itemArray = ["buy apples","buy groceries","buy something"]
+    let defaults = UserDefaults.standard
+    
     //as we are using the entire UITableViewController so we donot see any delegate or datasource methods
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+        if let items = defaults.array(forKey: "TodoListArray") as? [String]{
+            itemArray = items
+        }
     }
 
     //MARK - Table view Datasource methods
@@ -56,13 +61,12 @@ class TodoViewController: UITableViewController {
         
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
             //this part handles what should happen after clicking on add item button in Alert
-            print("newTodoName value \(newTodoName.text!)")
-            print("success!")
             self.itemArray.append(newTodoName.text!)
+            self.defaults.set(self.itemArray, forKey: "TodoListArray")
             self.tableView.reloadData()
         }
         itemAddAlert.addTextField { (textField) in
-            textField.placeholder = "create a todo item"
+            textField.placeholder = "Create a todo item"
             newTodoName = textField
           
         }
