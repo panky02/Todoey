@@ -10,7 +10,7 @@ import UIKit
 
 class TodoViewController: UITableViewController {
 
-    let itemArray = ["buy apples","buy groceries","buy something"]
+    var itemArray = ["buy apples","buy groceries","buy something"]
     //as we are using the entire UITableViewController so we donot see any delegate or datasource methods
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -46,6 +46,31 @@ class TodoViewController: UITableViewController {
             tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
         }
     }
+    
+    //MARK - add new item button
+    
+    @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
+        
+        var newTodoName = UITextField()
+        let itemAddAlert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
+        
+        let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
+            //this part handles what should happen after clicking on add item button in Alert
+            print("newTodoName value \(newTodoName.text!)")
+            print("success!")
+            self.itemArray.append(newTodoName.text!)
+            self.tableView.reloadData()
+        }
+        itemAddAlert.addTextField { (textField) in
+            textField.placeholder = "create a todo item"
+            newTodoName = textField
+          
+        }
+        
+        itemAddAlert.addAction(action)
+        present(itemAddAlert, animated: true)
+    }
+    
 
 }
 
