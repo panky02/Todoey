@@ -7,41 +7,23 @@
 //
 
 import UIKit
+import CoreData
 
 class TodoViewController: UITableViewController {
 
     var itemArray = [Item]()
-    //var itemArray = ["buy apples","buy groceries","buy something","n","o","p","k","l","h","q","w","e","r","t","y","u","i","o","v"]
-    //let defaults = UserDefaults.standard
     
-    //Nscode method to save User defined data in plist
-    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
+    let managedContext = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+  
     
     //as we are using the entire UITableViewController so we donot see any delegate or datasource methods
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+        print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
         
+        loadItems()
         
-//        let newItem = Item()
-//        newItem.title = "buy apples"
-//        itemArray.append(newItem)
-//
-//        let newItem2 = Item()
-//        newItem2.title = "buy groceries"
-//        itemArray.append(newItem2)
-//
-//        let newItem3 = Item()
-//        newItem3.title = "buy something"
-//        itemArray.append(newItem3)
-        
-//        if let items = defaults.array(forKey: "TodoListArray") as? [Item]{
-//            itemArray = items
-//        }
-        
-        loadData()
-        
-        //print(dataFilePath)
     }
 
     //MARK - Table view Datasource methods
@@ -56,16 +38,7 @@ class TodoViewController: UITableViewController {
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
         cell.textLabel?.text = itemArray[indexPath.row].title
-        
-        //ternary Operator substitute for below if else code
-        // value = condition ? value if true : value if False
         cell.accessoryType = itemArray[indexPath.row].done ? .checkmark : .none
-        
-//        if itemArray[indexPath.row].done == true{
-//            cell.accessoryType = .checkmark
-//        }else {
-//            cell.accessoryType = .none
-//        }
         
         return cell
     }
@@ -76,16 +49,12 @@ class TodoViewController: UITableViewController {
     
         tableView.deselectRow(at: indexPath, animated: true)
         
+//        managedContext.delete(itemArray[indexPath.row])
+//        itemArray.remove(at: indexPath.row)
+        
         itemArray[indexPath.row].done = !itemArray[indexPath.row].done
 
-       saveItems()
-        
-        //the below if else code was creating error when we were scrolling our table view as it was being reused
-//        if tableView.cellForRow(at: indexPath)?.accessoryType == .checkmark {
-//            tableView.cellForRow(at: indexPath)?.accessoryType = .none
-//        } else {
-//            tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
-//        }
+        saveItems()
     }
     
     //MARK - add new item button
@@ -97,21 +66,14 @@ class TodoViewController: UITableViewController {
         
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
             //this part handles what should happen after clicking on add item button in Alert
-            let addTodoItem = Item()
+            
+            let addTodoItem = Item(context: self.managedContext)
+            
             addTodoItem.title = newTodoName.text!
+            addTodoItem.done = false
             self.itemArray.append(addTodoItem)
-            
-            //self.defaults.set(self.itemArray, forKey: "TodoListArray")
-            
             self.saveItems()
-//            let encoder = PropertyListEncoder()
-//            do{
-//            let data = try encoder.encode(self.itemArray)
-//                try data.write(to: self.dataFilePath!)
-//            } catch {
-//                print("some error occureed during encoding \(error)")
-//            }
-//            self.tableView.reloadData()
+         
         }
         itemAddAlert.addTextField { (textField) in
             textField.placeholder = "Create a todo item"
@@ -126,26 +88,53 @@ class TodoViewController: UITableViewController {
 
     func saveItems(){
         
-        let encoder = PropertyListEncoder()
+        
         do{
-        let data = try encoder.encode(itemArray)
-            try data.write(to: dataFilePath!)
+           try managedContext.save()
         } catch {
-            print("some error occured during encoding \(error)")
+            print("some error occured in context \(error)")
         }
         tableView.reloadData()
     }
     
-    func loadData(){
+    //the loadItems function can now be called with or without a request parameter
+    func loadItems( with request: NSFetchRequest<Item> = Item.fetchRequest()){
         
-        if let data = try? Data(contentsOf: dataFilePath!) {
-            let decoder = PropertyListDecoder()
-            do{
-             itemArray = try decoder.decode([Item].self, from: data)
-            } catch {
-                print("some error while decoding \(error)")
+        //let request:NSFetchRequest<Item> = Item.fetchRequest()
+        
+        do {
+            itemArray = try managedContext.fetch(request)
+        } catch {
+            print("error ocurred while reading data \(error)")
+        }
+        tableView.reloadData()
+    }
+
+}
+//MARK:- Search bar methods
+extension TodoViewController:UISearchBarDelegate{
+    
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        
+        let request :NSFetchRequest<Item> = Item.fetchRequest()
+        
+        request.predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+        
+        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+        
+        loadItems(with: request)
+        
+    }
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchBar.text?.count == 0 {
+            loadItems()
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder()
             }
+            
         }
     }
+    
 }
 
