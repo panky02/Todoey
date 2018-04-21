@@ -12,17 +12,22 @@ import CoreData
 class TodoViewController: UITableViewController {
 
     var itemArray = [Item]()
+    var selectedCategory :Category? {
+        didSet{
+            loadItems()
+        }
+    }
     
     let managedContext = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
   
     
-    //as we are using the entire UITableViewController so we donot see any delegate or datasource methods
+    //as we are using the entire UITableViewController so we donot see any delegate or datasource initialisation
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
         
-        loadItems()
+        //loadItems()
         
     }
 
@@ -71,6 +76,7 @@ class TodoViewController: UITableViewController {
             
             addTodoItem.title = newTodoName.text!
             addTodoItem.done = false
+            addTodoItem.parentCategory = self.selectedCategory
             self.itemArray.append(addTodoItem)
             self.saveItems()
          
@@ -85,9 +91,9 @@ class TodoViewController: UITableViewController {
         present(itemAddAlert, animated: true)
     }
     
-
+    //MARK: - Data Manipulation Methods
+    
     func saveItems(){
-        
         
         do{
            try managedContext.save()
@@ -98,10 +104,17 @@ class TodoViewController: UITableViewController {
     }
     
     //the loadItems function can now be called with or without a request parameter
-    func loadItems( with request: NSFetchRequest<Item> = Item.fetchRequest()){
+    func loadItems( with request: NSFetchRequest<Item> = Item.fetchRequest(), predicate: NSPredicate? = nil){
         
-        //let request:NSFetchRequest<Item> = Item.fetchRequest()
+       let categoryPredicate = NSPredicate(format: "parentCategory.name MATCHES %@", selectedCategory!.name!)
         
+        if let additionalPredicate = predicate {
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate,additionalPredicate])
+            print("request with two predicate")
+        } else{
+            request.predicate = categoryPredicate
+            print("request with one predicate")
+        }
         do {
             itemArray = try managedContext.fetch(request)
         } catch {
@@ -118,11 +131,11 @@ extension TodoViewController:UISearchBarDelegate{
         
         let request :NSFetchRequest<Item> = Item.fetchRequest()
         
-        request.predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+        let itemPredicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
         
         request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
         
-        loadItems(with: request)
+        loadItems(with: request,predicate:itemPredicate )
         
     }
     
