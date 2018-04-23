@@ -9,7 +9,9 @@
 import UIKit
 import RealmSwift
 
-class CategoryViewController: UITableViewController {
+
+
+class CategoryViewController: SwipeTableViewController {
 
     var categories :Results<Category>?
     
@@ -29,11 +31,13 @@ class CategoryViewController: UITableViewController {
         //nil COALESCING operator ?? which is used when we have to pass a default value to protect our code from breaking if categories is nil
     }
     
+    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoCategoryCell", for: indexPath)
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         //what to show in Table view reuable Cell
         cell.textLabel?.text = categories?[indexPath.row].name ?? "No Categories Added yet"
+
         return cell
     }
     
@@ -56,6 +60,20 @@ class CategoryViewController: UITableViewController {
         categories = realm.objects(Category.self)
         
    }
+    //MARK: - Delete Category
+    override func updateModel(indexPath: IndexPath) {
+      
+        if let selCategory = self.categories?[indexPath.row]{
+            do{
+                try self.realm.write {
+                    self.realm.delete(selCategory)
+                }
+            } catch {
+                print("error while deleting \(error)")
+            }
+            //tableView.reloadData() // now with "editActionsOptionsForRowAt" swipeCellKit method, there is no need to reloadData of tableview
+        }
+    }
     
     
     //MARK:- Add new Categories
@@ -69,7 +87,6 @@ class CategoryViewController: UITableViewController {
         let alertBtn = UIAlertAction(title: "Add Category", style: .default) { (action) in
             
             //this Closure will be triggered when the Add Category btn is pressed
-            print("Add category btn pressed with Text \(categoryText.text!)")
             
             let categoryItem = Category()
             categoryItem.name = categoryText.text!
@@ -102,3 +119,4 @@ class CategoryViewController: UITableViewController {
     }
     
 }
+
